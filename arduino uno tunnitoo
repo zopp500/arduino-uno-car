@@ -1,33 +1,33 @@
 #include <Servo.h>
 Servo servo;
 
-// Ultrasonic Module pins
-const int trigPin = 13; // 10 microsecond high pulse causes chirp , wait 50 us
-const int echoPin = 12; // Width of high pulse indicates distance
+// Ultraheli mooduli pin'id
+const int trigPin = 13; // 10 mikrosekundi pikkune kõrge impuls muudab sensorit, ootab 50 ms
+const int echoPin = 12; // Kõrge impulsi kestus näitab kaugust
 
-// Servo motor that aims ultrasonic sensor
-const int servoPin = 11; // PWM output for hobby servo
+// Servo mootor, mis suunab ultraheli sensori
+const int servoPin = 11; // PWM väljund hobi servo jaoks
 
-// Motor control pins: L298N H bridge
-const int enAPin = 6; // Left motor PWM speed control
-const int in1Pin = 7; // Left motor Direction 1
-const int in2Pin = 5; // Left motor Direction 2
-const int in3Pin = 4; // Right motor Direction 1
-const int in4Pin = 2; // Right motor Direction 2
-const int enBPin = 3; // Right motor PWM speed control
+// Mootori juhtimise pin'id: L298N H-sild
+const int enAPin = 6; // Vasaku mootori PWM kiiruskontroll
+const int in1Pin = 7; // Vasaku mootori suund 1
+const int in2Pin = 5; // Vasaku mootori suund 2
+const int in3Pin = 4; // Parem mootori suund 1
+const int in4Pin = 2; // Parem mootori suund 2
+const int enBPin = 3; // Parem mootori PWM kiiruskontroll
 
 enum Motor { LEFT, RIGHT };
 
-// Set motor speed: 255 full ahead, −255 full reverse , 0 stop
+// Määrab mootori kiirus: 255 täis edasi, −255 täis tagasi, 0 seisab
 void go(Motor m, int speed) {
   digitalWrite(m == LEFT ? in1Pin : in3Pin, speed > 0 ? HIGH : LOW);
   digitalWrite(m == LEFT ? in2Pin : in4Pin, speed <= 0 ? HIGH : LOW);
   analogWrite(m == LEFT ? enAPin : enBPin, speed < 0 ? -speed : speed);
 }
 
-// Initial motor test:
-// left motor forward then back
-// right motor forward then back
+// Algne mootori test:
+// vasak mootor edasi ja siis tagasi
+// parem mootor edasi ja siis tagasi
 void testMotors() {
   static int speed[8] = { 128, 255, 128, 0, -128, -255, -128, 0 };
 
@@ -38,9 +38,9 @@ void testMotors() {
     go(RIGHT, speed[i]), delay(200);
 }
 
-// Read distance from the ultrasonic sensor, return distance in mm
-// Speed of sound in dry air, 20C is 343 m/s
-// pulseIn returns time in microseconds (10^-6)
+// Loeb kauguse ultraheli sensorilt, tagastab kauguse millimeetrites
+// Helikiirus kuivõhu puhul, 20°C on 343 m/s
+// pulseIn tagastab aja mikrosekundites (10^-6)
 // 2d = p * 10^-6 s * 343 m/s = p * 0.00343 m = p * 0.343 mm/us
 unsigned int readDistance() {
   digitalWrite(trigPin, HIGH);
@@ -54,9 +54,9 @@ unsigned int readDistance() {
 unsigned char sensorAngle[NUM_ANGLES] = { 60, 70, 80, 90, 100, 110, 120 };
 unsigned int distance[NUM_ANGLES];
 
-// Scan the area ahead by sweeping the ultrasonic sensor left and right
-// and recording the distance observed. This takes a reading, then
-// sends the servo to the next angle. Call repeatedly once every 50 ms or so.
+// Skaneerib eesolevat ala, liigutades ultraheli sensori vasakule ja paremale
+// ning salvestades kauguse. See teeb ühe lugemise ja siis viib servo järgmise nurga juurde.
+// Kutsuge seda iga 50 ms järel.
 void readNextDistance() {
   static unsigned char angleIndex = 0;
   static signed char step = 1;
@@ -68,12 +68,12 @@ void readNextDistance() {
   servo.write(sensorAngle[angleIndex]);
 }
 
-// Initial configuration
-// Configure the input and output pins
-// Center the servo
-// Turn off the motors
-// Test the motors
-// Scan the surroundings once
+// Algkonfiguratsioon
+// Määrake sisendi ja väljundi pin'id
+// Keskendage servo
+// Lülitage mootoreid välja
+// Testige mootoreid
+// Skaneerige ümbritsevat ala üks kord
 void setup() {
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
@@ -87,28 +87,28 @@ void setup() {
   pinMode(enBPin, OUTPUT);
 
   servo.attach(servoPin);
-  servo.write(90);  // Center the servo
+  servo.write(90);  // Keskendage servo
 
   go(LEFT, 0);
   go(RIGHT, 0);
 
   testMotors();
 
-  // Scan the surroundings before starting
+  // Skaneerige ümbritsevat ala enne alustamist
   servo.write(sensorAngle[0]);
   delay(200);
   for (unsigned char i = 0; i < NUM_ANGLES; i++)
     readNextDistance(), delay(200);
 }
 
-// Main loop:
-// Get the next sensor reading
-// If anything appears to be too close, back up
-// Otherwise, go forward
+// Põhiring:
+// Saage järgmine sensori lugemine
+// Kui midagi on liiga lähedal, liikuge tagasi
+// Kui mitte, liikuge edasi
 void loop() {
   readNextDistance();
 
-  // See if something is too close at any angle
+  // Kontrollige, kas midagi on liiga lähedal mõnes nurgas
   unsigned char tooClose = 0;
   for (unsigned char i = 0; i < NUM_ANGLES; i++) {
     if (distance[i] < 300) {
@@ -117,15 +117,15 @@ void loop() {
   }
 
   if (tooClose) {
-    // Something's nearby: back up left
+    // Midagi on lähedal: liigu tagasi vasakule
     go(LEFT, -180);
     go(RIGHT, -80);
   } else {
-    // Nothing in our way: go forward
+    // Ei midagi ees: liigu edasi
     go(LEFT, 255);
     go(RIGHT, 255);
   }
 
-  // Check the next direction in 50 ms
+  // Kontrollige järgmine suund 50 ms pärast
   delay(50);
 }
